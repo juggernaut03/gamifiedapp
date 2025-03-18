@@ -1,9 +1,7 @@
 import React, { useContext } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { ThemeContext } from "../context/ThemeContext";
-import React, { useContext } from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { ThemeContext } from "../context/ThemeContext";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // Import screens
