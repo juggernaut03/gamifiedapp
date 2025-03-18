@@ -1,12 +1,13 @@
-import React, { useContext } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ThemeContext } from '../context/ThemeContext';
+import React, { useContext } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { ThemeContext } from "../context/ThemeContext";
 // Import screens
-import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import SubjectsListScreen from '../screens/subjects/SubjectsListScreen';
-import ChallengesScreen from '../screens/challenges/ChallengesScreen';
-import AiTutorScreen from '../screens/aiTutor/AiTutorScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import DashboardScreen from "../screens/dashboard/DashboardScreen";
+import SubjectsListScreen from "../screens/subjects/SubjectsListScreen";
+import ChallengesScreen from "../screens/challenges/ChallengesScreen";
+import AiTutorScreen from "../screens/aiTutor/AiTutorScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
+import MockTestApp from "../screens/Mock/mockTest";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,44 +24,51 @@ const TabNavigator = () => {
         },
       }}
     >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={DashboardScreen} 
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
         options={{
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: "Dashboard",
           // Add icon here
         }}
       />
-      <Tab.Screen 
-        name="Subjects" 
-        component={SubjectsListScreen} 
+      <Tab.Screen
+        name="Subjects"
+        component={SubjectsListScreen}
         options={{
-          tabBarLabel: 'Subjects',
+          tabBarLabel: "Subjects",
           // Add icon here
         }}
       />
-      <Tab.Screen 
-        name="Challenges" 
-        component={ChallengesScreen} 
+      <Tab.Screen
+        name="Challenges"
+        component={ChallengesScreen}
         options={{
-          tabBarLabel: 'Challenges',
+          tabBarLabel: "Challenges",
           // Add icon here
         }}
       />
-      <Tab.Screen 
-        name="AiTutor" 
-        component={AiTutorScreen} 
+      <Tab.Screen
+        name="AiTutor"
+        component={AiTutorScreen}
         options={{
-          tabBarLabel: 'AI Tutor',
+          tabBarLabel: "AI Tutor",
           // Add icon here
         }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen} 
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: "Profile",
           // Add icon here
+        }}
+      />
+      <Tab.Screen
+        name="mockTest"
+        component={MockTestApp}
+        options={{
+          tabBarLabel: "Mock",
         }}
       />
     </Tab.Navigator>

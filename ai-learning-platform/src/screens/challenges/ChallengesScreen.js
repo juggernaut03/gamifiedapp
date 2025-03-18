@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -8,44 +8,50 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
-  ActivityIndicator
-} from 'react-native';
-import { ThemeContext } from '../../context/ThemeContext';
-import { useFocusEffect } from '@react-navigation/native';
+  ActivityIndicator,
+} from "react-native";
+import App from "../Mock/mockNavigationCard";
+import { ThemeContext } from "../../context/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
+import { Button } from "react-native";
 
 // Challenge card component
 const ChallengeCard = ({ challenge, theme, onPress }) => {
   // Calculate progress percentage
   const progressPercentage = challenge.completed ? 100 : 0;
-  
+
   return (
     <TouchableOpacity
       style={[styles.challengeCard, { backgroundColor: theme.colors.card }]}
       onPress={onPress}
     >
       {/* Challenge Type Badge */}
-      <View style={[
-        styles.challengeTypeBadge, 
-        { 
-          backgroundColor: 
-            challenge.type === 'Quiz' 
-              ? theme.colors.primary + '20' 
-              : challenge.type === 'Coding' 
-                ? theme.colors.secondary + '20' 
-                : theme.colors.accent + '20' 
-        }
-      ]}>
-        <Text style={[
-          styles.challengeTypeText,
-          { 
-            color: 
-              challenge.type === 'Quiz' 
-                ? theme.colors.primary 
-                : challenge.type === 'Coding' 
-                  ? theme.colors.secondary 
-                  : theme.colors.accent 
-          }
-        ]}>
+      <View
+        style={[
+          styles.challengeTypeBadge,
+          {
+            backgroundColor:
+              challenge.type === "Quiz"
+                ? theme.colors.primary + "20"
+                : challenge.type === "Coding"
+                ? theme.colors.secondary + "20"
+                : theme.colors.accent + "20",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.challengeTypeText,
+            {
+              color:
+                challenge.type === "Quiz"
+                  ? theme.colors.primary
+                  : challenge.type === "Coding"
+                  ? theme.colors.secondary
+                  : theme.colors.accent,
+            },
+          ]}
+        >
           {challenge.type}
         </Text>
       </View>
@@ -57,38 +63,49 @@ const ChallengeCard = ({ challenge, theme, onPress }) => {
 
       {/* Challenge Subject & Duration */}
       <View style={styles.challengeDetails}>
-        <Text style={[styles.challengeSubject, { color: theme.colors.text + '99' }]}>
+        <Text
+          style={[styles.challengeSubject, { color: theme.colors.text + "99" }]}
+        >
           {challenge.subject}
         </Text>
-        <Text style={[styles.challengeDuration, { color: theme.colors.text + '99' }]}>
+        <Text
+          style={[
+            styles.challengeDuration,
+            { color: theme.colors.text + "99" },
+          ]}
+        >
           {challenge.estimatedDuration} min
         </Text>
       </View>
 
       {/* Difficulty & XP */}
       <View style={styles.challengeStats}>
-        <View style={[
-          styles.difficultyBadge, 
-          { 
-            backgroundColor: 
-              challenge.difficulty === 'Easy' 
-                ? theme.colors.success + '20' 
-                : challenge.difficulty === 'Medium' 
-                  ? theme.colors.warning + '20' 
-                  : theme.colors.error + '20' 
-          }
-        ]}>
-          <Text style={[
-            styles.difficultyText, 
-            { 
-              color: 
-                challenge.difficulty === 'Easy' 
-                  ? theme.colors.success 
-                  : challenge.difficulty === 'Medium' 
-                    ? theme.colors.warning 
-                    : theme.colors.error 
-            }
-          ]}>
+        <View
+          style={[
+            styles.difficultyBadge,
+            {
+              backgroundColor:
+                challenge.difficulty === "Easy"
+                  ? theme.colors.success + "20"
+                  : challenge.difficulty === "Medium"
+                  ? theme.colors.warning + "20"
+                  : theme.colors.error + "20",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.difficultyText,
+              {
+                color:
+                  challenge.difficulty === "Easy"
+                    ? theme.colors.success
+                    : challenge.difficulty === "Medium"
+                    ? theme.colors.warning
+                    : theme.colors.error,
+              },
+            ]}
+          >
             {challenge.difficulty}
           </Text>
         </View>
@@ -102,16 +119,29 @@ const ChallengeCard = ({ challenge, theme, onPress }) => {
       {/* Status Indicator */}
       <View style={styles.statusContainer}>
         {challenge.completed ? (
-          <View style={[styles.completedBadge, { backgroundColor: theme.colors.success }]}>
+          <View
+            style={[
+              styles.completedBadge,
+              { backgroundColor: theme.colors.success },
+            ]}
+          >
             <Text style={styles.completedText}>Completed</Text>
           </View>
         ) : challenge.inProgress ? (
-          <View style={[styles.inProgressBadge, { backgroundColor: theme.colors.warning }]}>
+          <View
+            style={[
+              styles.inProgressBadge,
+              { backgroundColor: theme.colors.warning },
+            ]}
+          >
             <Text style={styles.inProgressText}>In Progress</Text>
           </View>
         ) : (
-          <TouchableOpacity 
-            style={[styles.startButton, { backgroundColor: theme.colors.primary }]}
+          <TouchableOpacity
+            style={[
+              styles.startButton,
+              { backgroundColor: theme.colors.primary },
+            ]}
             onPress={onPress}
           >
             <Text style={styles.startButtonText}>Start Challenge</Text>
@@ -125,20 +155,22 @@ const ChallengeCard = ({ challenge, theme, onPress }) => {
 // Difficulty filter tab
 const DifficultyTab = ({ title, isActive, onPress, theme }) => {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.difficultyTab,
-        isActive && { 
+        isActive && {
           backgroundColor: theme.colors.primary,
-          borderColor: theme.colors.primary 
-        }
+          borderColor: theme.colors.primary,
+        },
       ]}
       onPress={onPress}
     >
-      <Text style={[
-        styles.difficultyTabText,
-        { color: isActive ? 'white' : theme.colors.text }
-      ]}>
+      <Text
+        style={[
+          styles.difficultyTabText,
+          { color: isActive ? "white" : theme.colors.text },
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -148,31 +180,33 @@ const DifficultyTab = ({ title, isActive, onPress, theme }) => {
 // Challenge type filter
 const TypeFilter = ({ type, isActive, onPress, theme }) => {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.typeFilter,
-        { 
-          backgroundColor: isActive ? 
-            theme.colors.card : 
-            theme.colors.background,
-          borderColor: isActive ? 
-            theme.colors.primary : 
-            theme.colors.border,
-        }
+        {
+          backgroundColor: isActive
+            ? theme.colors.card
+            : theme.colors.background,
+          borderColor: isActive ? theme.colors.primary : theme.colors.border,
+        },
       ]}
       onPress={onPress}
     >
-      <Text style={[
-        styles.typeFilterText,
-        { color: isActive ? theme.colors.primary : theme.colors.text + '80' }
-      ]}>
+      <Text
+        style={[
+          styles.typeFilterText,
+          { color: isActive ? theme.colors.primary : theme.colors.text + "80" },
+        ]}
+      >
         {type}
       </Text>
       {isActive && (
-        <View style={[
-          styles.activeIndicator, 
-          { backgroundColor: theme.colors.primary }
-        ]} />
+        <View
+          style={[
+            styles.activeIndicator,
+            { backgroundColor: theme.colors.primary },
+          ]}
+        />
       )}
     </TouchableOpacity>
   );
@@ -181,51 +215,60 @@ const TypeFilter = ({ type, isActive, onPress, theme }) => {
 // Challenge leaderboard row
 const LeaderboardRow = ({ rank, user, score, isCurrentUser, theme }) => {
   return (
-    <View style={[
-      styles.leaderboardRow, 
-      isCurrentUser && { backgroundColor: theme.colors.primary + '10' }
-    ]}>
+    <View
+      style={[
+        styles.leaderboardRow,
+        isCurrentUser && { backgroundColor: theme.colors.primary + "10" },
+      ]}
+    >
       <View style={styles.rankContainer}>
-        <Text style={[
-          styles.rankText, 
-          { 
-            color: 
-              rank <= 3 ? 
-                theme.colors.primary : 
-                theme.colors.text 
-          }
-        ]}>
+        <Text
+          style={[
+            styles.rankText,
+            {
+              color: rank <= 3 ? theme.colors.primary : theme.colors.text,
+            },
+          ]}
+        >
           {rank}
         </Text>
       </View>
       <View style={styles.userContainer}>
-        <View style={[
-          styles.userAvatar, 
-          { backgroundColor: isCurrentUser ? theme.colors.primary : theme.colors.secondary }
-        ]}>
+        <View
+          style={[
+            styles.userAvatar,
+            {
+              backgroundColor: isCurrentUser
+                ? theme.colors.primary
+                : theme.colors.secondary,
+            },
+          ]}
+        >
           <Text style={styles.userInitial}>
             {user.name.charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={[
-          styles.userName, 
-          { 
-            color: theme.colors.text,
-            fontWeight: isCurrentUser ? 'bold' : 'normal'
-          }
-        ]}>
+        <Text
+          style={[
+            styles.userName,
+            {
+              color: theme.colors.text,
+              fontWeight: isCurrentUser ? "bold" : "normal",
+            },
+          ]}
+        >
           {user.name}
         </Text>
       </View>
       <View style={styles.scoreContainer}>
-        <Text style={[
-          styles.scoreText, 
-          { 
-            color: isCurrentUser ? 
-              theme.colors.primary : 
-              theme.colors.text 
-          }
-        ]}>
+        <Text
+          style={[
+            styles.scoreText,
+            {
+              color: isCurrentUser ? theme.colors.primary : theme.colors.text,
+            },
+          ]}
+        >
           {score} XP
         </Text>
       </View>
@@ -238,16 +281,16 @@ const ChallengesScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [challenges, setAllChallenges] = useState([]);
   const [filteredChallenges, setFilteredChallenges] = useState([]);
-  const [selectedTab, setSelectedTab] = useState('All');
-  const [selectedType, setSelectedType] = useState('All');
+  const [selectedTab, setSelectedTab] = useState("All");
+  const [selectedType, setSelectedType] = useState("All");
   const [userRank, setUserRank] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
 
   // Difficulty tabs
-  const difficultyTabs = ['All', 'Easy', 'Medium', 'Hard'];
-  
+  const difficultyTabs = ["All", "Easy", "Medium", "Hard"];
+
   // Challenge types
-  const challengeTypes = ['All', 'Quiz', 'Coding', 'Practice'];
+  const challengeTypes = ["All", "Quiz", "Coding", "Practice"];
 
   useFocusEffect(
     React.useCallback(() => {
@@ -263,101 +306,101 @@ const ChallengesScreen = ({ navigation }) => {
   // Fetch challenges data
   const fetchChallenges = async () => {
     setLoading(true);
-    
+
     // Simulate API request
     setTimeout(() => {
       // Mock data
       const data = [
         {
           id: 1,
-          title: 'Process Synchronization Challenge',
-          type: 'Quiz',
-          subject: 'Operating Systems',
-          difficulty: 'Medium',
+          title: "Process Synchronization Challenge",
+          type: "Quiz",
+          subject: "Operating Systems",
+          difficulty: "Medium",
           estimatedDuration: 15,
           xpReward: 150,
           completed: false,
-          inProgress: true
+          inProgress: true,
         },
         {
           id: 2,
-          title: 'Binary Tree Implementation',
-          type: 'Coding',
-          subject: 'Data Structures',
-          difficulty: 'Hard',
+          title: "Binary Tree Implementation",
+          type: "Coding",
+          subject: "Data Structures",
+          difficulty: "Hard",
           estimatedDuration: 30,
           xpReward: 300,
           completed: false,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 3,
-          title: 'SQL Query Optimization',
-          type: 'Practice',
-          subject: 'Database Systems',
-          difficulty: 'Easy',
+          title: "SQL Query Optimization",
+          type: "Practice",
+          subject: "Database Systems",
+          difficulty: "Easy",
           estimatedDuration: 10,
           xpReward: 100,
           completed: true,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 4,
-          title: 'TCP/IP Protocol Stack',
-          type: 'Quiz',
-          subject: 'Computer Networks',
-          difficulty: 'Medium',
+          title: "TCP/IP Protocol Stack",
+          type: "Quiz",
+          subject: "Computer Networks",
+          difficulty: "Medium",
           estimatedDuration: 15,
           xpReward: 150,
           completed: false,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 5,
-          title: 'Heap Sort Implementation',
-          type: 'Coding',
-          subject: 'Algorithms',
-          difficulty: 'Medium',
+          title: "Heap Sort Implementation",
+          type: "Coding",
+          subject: "Algorithms",
+          difficulty: "Medium",
           estimatedDuration: 25,
           xpReward: 200,
           completed: false,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 6,
-          title: 'Derivatives Challenge',
-          type: 'Practice',
-          subject: 'Calculus',
-          difficulty: 'Hard',
+          title: "Derivatives Challenge",
+          type: "Practice",
+          subject: "Calculus",
+          difficulty: "Hard",
           estimatedDuration: 20,
           xpReward: 250,
           completed: false,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 7,
-          title: 'Vector Spaces Quiz',
-          type: 'Quiz',
-          subject: 'Linear Algebra',
-          difficulty: 'Easy',
+          title: "Vector Spaces Quiz",
+          type: "Quiz",
+          subject: "Linear Algebra",
+          difficulty: "Easy",
           estimatedDuration: 12,
           xpReward: 120,
           completed: true,
-          inProgress: false
+          inProgress: false,
         },
         {
           id: 8,
-          title: 'Circuit Analysis Practice',
-          type: 'Practice',
-          subject: 'Electrical Engineering',
-          difficulty: 'Medium',
+          title: "Circuit Analysis Practice",
+          type: "Practice",
+          subject: "Electrical Engineering",
+          difficulty: "Medium",
           estimatedDuration: 18,
           xpReward: 180,
           completed: false,
-          inProgress: false
+          inProgress: false,
         },
       ];
-      
+
       setAllChallenges(data);
       setFilteredChallenges(data);
       setLoading(false);
@@ -370,15 +413,15 @@ const ChallengesScreen = ({ navigation }) => {
     setTimeout(() => {
       // Mock data
       const data = [
-        { id: 1, user: { name: 'Alex Johnson' }, score: 4250 },
-        { id: 2, user: { name: 'Emma Williams' }, score: 3980 },
-        { id: 3, user: { name: 'Michael Brown' }, score: 3720 },
-        { id: 4, user: { name: 'Current User' }, score: 3150 },
-        { id: 5, user: { name: 'Sophia Garcia' }, score: 2890 },
-        { id: 6, user: { name: 'Daniel Martinez' }, score: 2750 },
-        { id: 7, user: { name: 'Olivia Wilson' }, score: 2580 },
+        { id: 1, user: { name: "Alex Johnson" }, score: 4250 },
+        { id: 2, user: { name: "Emma Williams" }, score: 3980 },
+        { id: 3, user: { name: "Michael Brown" }, score: 3720 },
+        { id: 4, user: { name: "Current User" }, score: 3150 },
+        { id: 5, user: { name: "Sophia Garcia" }, score: 2890 },
+        { id: 6, user: { name: "Daniel Martinez" }, score: 2750 },
+        { id: 7, user: { name: "Olivia Wilson" }, score: 2580 },
       ];
-      
+
       setLeaderboard(data);
       setUserRank(4); // Assuming the current user is at rank 4
     }, 1200);
@@ -392,27 +435,27 @@ const ChallengesScreen = ({ navigation }) => {
   // Filter challenges based on selected tab and type
   const filterChallenges = () => {
     let filtered = challenges;
-    
+
     // Filter by difficulty
-    if (selectedTab !== 'All') {
-      filtered = filtered.filter(challenge => 
-        challenge.difficulty === selectedTab
+    if (selectedTab !== "All") {
+      filtered = filtered.filter(
+        (challenge) => challenge.difficulty === selectedTab
       );
     }
-    
+
     // Filter by type
-    if (selectedType !== 'All') {
-      filtered = filtered.filter(challenge => 
-        challenge.type === selectedType
+    if (selectedType !== "All") {
+      filtered = filtered.filter(
+        (challenge) => challenge.type === selectedType
       );
     }
-    
+
     setFilteredChallenges(filtered);
   };
 
   // Handle challenge card press
   const handleChallengePress = (challenge) => {
-    navigation.navigate('ChallengeDetail', { challengeId: challenge.id });
+    navigation.navigate("ChallengeDetail", { challengeId: challenge.id });
   };
 
   // Handle difficulty tab press
@@ -427,7 +470,12 @@ const ChallengesScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={[styles.loadingText, { color: theme.colors.text }]}>
           Loading challenges...
@@ -437,7 +485,9 @@ const ChallengesScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView>
         {/* Header */}
         <View style={styles.header}>
@@ -445,10 +495,14 @@ const ChallengesScreen = ({ navigation }) => {
             Challenges
           </Text>
         </View>
-
         {/* Featured Challenge */}
         <View style={styles.featuredContainer}>
-          <View style={[styles.featuredCard, { backgroundColor: theme.colors.primary }]}>
+          <View
+            style={[
+              styles.featuredCard,
+              { backgroundColor: theme.colors.primary },
+            ]}
+          >
             <View style={styles.featuredContent}>
               <View style={styles.featuredBadgeContainer}>
                 <View style={styles.featuredBadge}>
@@ -459,7 +513,8 @@ const ChallengesScreen = ({ navigation }) => {
                 Weekly Coding Competition
               </Text>
               <Text style={styles.featuredDescription}>
-                Solve algorithm problems and compete with other students. Top 3 win bonus XP!
+                Solve algorithm problems and compete with other students. Top 3
+                win bonus XP!
               </Text>
               <TouchableOpacity style={styles.featuredButton}>
                 <Text style={styles.featuredButtonText}>Join Now</Text>
@@ -470,19 +525,27 @@ const ChallengesScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
-
-        {/* Leaderboard Section */}
+        {/* Mock Navigation */}r{/* Leaderboard Section */}
         <View style={styles.leaderboardSection}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Leaderboard
           </Text>
-          <View style={[styles.leaderboardCard, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.leaderboardCard,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <View style={styles.leaderboardHeader}>
-              <Text style={[styles.leaderboardTitle, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.leaderboardTitle, { color: theme.colors.text }]}
+              >
                 Weekly Challenge Points
               </Text>
               <TouchableOpacity>
-                <Text style={[styles.viewAllText, { color: theme.colors.primary }]}>
+                <Text
+                  style={[styles.viewAllText, { color: theme.colors.primary }]}
+                >
                   View All
                 </Text>
               </TouchableOpacity>
@@ -501,14 +564,13 @@ const ChallengesScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
-
         {/* Filter Tabs */}
         <View style={styles.filtersContainer}>
           <Text style={[styles.filterTitle, { color: theme.colors.text }]}>
             Difficulty
           </Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.difficultyTabsContainer}
           >
@@ -523,7 +585,6 @@ const ChallengesScreen = ({ navigation }) => {
             ))}
           </ScrollView>
         </View>
-
         {/* Type Filters */}
         <View style={styles.typeFiltersContainer}>
           <Text style={[styles.filterTitle, { color: theme.colors.text }]}>
@@ -541,10 +602,11 @@ const ChallengesScreen = ({ navigation }) => {
             ))}
           </View>
         </View>
-
         {/* Challenges List */}
         <View style={styles.challengesListContainer}>
-          <Text style={[styles.challengesListTitle, { color: theme.colors.text }]}>
+          <Text
+            style={[styles.challengesListTitle, { color: theme.colors.text }]}
+          >
             Available Challenges
           </Text>
           {filteredChallenges.length > 0 ? (
@@ -564,10 +626,13 @@ const ChallengesScreen = ({ navigation }) => {
                 No challenges match your current filters.
               </Text>
               <TouchableOpacity
-                style={[styles.resetButton, { backgroundColor: theme.colors.primary }]}
+                style={[
+                  styles.resetButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={() => {
-                  setSelectedTab('All');
-                  setSelectedType('All');
+                  setSelectedTab("All");
+                  setSelectedType("All");
                 }}
               >
                 <Text style={styles.resetButtonText}>Reset Filters</Text>
@@ -575,7 +640,6 @@ const ChallengesScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
         {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -589,8 +653,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,
@@ -603,7 +667,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 30,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   featuredContainer: {
     paddingHorizontal: 20,
@@ -612,7 +676,7 @@ const styles = StyleSheet.create({
   featuredCard: {
     borderRadius: 16,
     padding: 20,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   featuredContent: {
     flex: 2,
@@ -621,44 +685,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   featuredBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   featuredBadgeText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   featuredTitle: {
-    color: 'white',
+    color: "white",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   featuredDescription: {
-    color: 'white',
+    color: "white",
     opacity: 0.8,
     fontSize: 14,
     marginBottom: 16,
   },
   featuredButton: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   featuredButtonText: {
-    color: '#3498db', // Primary color
-    fontWeight: 'bold',
+    color: "#3498db", // Primary color
+    fontWeight: "bold",
   },
   featuredImageContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   trophyEmoji: {
     fontSize: 50,
@@ -669,7 +733,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
   },
   leaderboardCard: {
@@ -677,14 +741,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   leaderboardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   leaderboardTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   viewAllText: {
     fontSize: 14,
@@ -693,47 +757,47 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   leaderboardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     borderRadius: 8,
   },
   rankContainer: {
     width: 30,
-    alignItems: 'center',
+    alignItems: "center",
   },
   rankText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   userContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   userAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   userInitial: {
-    color: 'white',
+    color: "white",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   userName: {
     fontSize: 14,
   },
   scoreContainer: {
     width: 80,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   scoreText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   filtersContainer: {
     paddingHorizontal: 20,
@@ -741,7 +805,7 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 12,
   },
   difficultyTabsContainer: {
@@ -753,19 +817,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
   },
   difficultyTabText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   typeFiltersContainer: {
     paddingHorizontal: 20,
     marginBottom: 24,
   },
   typeFiltersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   typeFilter: {
     paddingHorizontal: 16,
@@ -777,10 +841,10 @@ const styles = StyleSheet.create({
   },
   typeFilterText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activeIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -793,7 +857,7 @@ const styles = StyleSheet.create({
   },
   challengesListTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
   },
   challengesList: {
@@ -805,7 +869,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   challengeTypeBadge: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -813,16 +877,16 @@ const styles = StyleSheet.create({
   },
   challengeTypeText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   challengeTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   challengeDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   challengeSubject: {
@@ -832,9 +896,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   challengeStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   difficultyBadge: {
@@ -844,7 +908,7 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   xpContainer: {
     paddingHorizontal: 12,
@@ -852,7 +916,7 @@ const styles = StyleSheet.create({
   },
   xpText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statusContainer: {
     marginTop: 8,
@@ -860,40 +924,40 @@ const styles = StyleSheet.create({
   completedBadge: {
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   completedText: {
-    color: 'white',
+    color: "white",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   inProgressBadge: {
     paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   inProgressText: {
-    color: 'white',
+    color: "white",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   startButton: {
     paddingVertical: 10,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   startButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   resetButton: {
@@ -902,9 +966,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   resetButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   bottomPadding: {
     height: 100,
