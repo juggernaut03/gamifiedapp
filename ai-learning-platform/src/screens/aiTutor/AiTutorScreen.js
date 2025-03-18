@@ -11,10 +11,12 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Keyboard,
-  Image
+  Image,
+  Alert
 } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Message component for chat
 const Message = ({ message, theme }) => {
@@ -98,6 +100,52 @@ const SuggestionBubble = ({ suggestion, onPress, theme }) => {
   );
 };
 
+// API Key configuration dialog
+const ApiKeyDialog = ({ visible, apiKey, onSave, onCancel, theme }) => {
+  const [key, setKey] = useState(apiKey || '');
+
+  return visible ? (
+    <View style={[styles.dialogOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <View style={[styles.dialogContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.dialogTitle, { color: theme.colors.text }]}>Gemini API Key</Text>
+        <Text style={[styles.dialogDescription, { color: theme.colors.text + '99' }]}>
+          Enter your Gemini API key to power the AI tutor. Your key will be stored securely on your device.
+        </Text>
+        <TextInput
+          style={[
+            styles.dialogInput,
+            { 
+              backgroundColor: theme.colors.card,
+              color: theme.colors.text,
+              borderColor: theme.colors.border
+            }
+          ]}
+          placeholder="Enter your Gemini API key"
+          placeholderTextColor={theme.colors.text + '60'}
+          value={key}
+          onChangeText={setKey}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <View style={styles.dialogButtonContainer}>
+          <TouchableOpacity
+            style={[styles.dialogButton, { borderColor: theme.colors.border }]}
+            onPress={onCancel}
+          >
+            <Text style={[styles.dialogButtonText, { color: theme.colors.text }]}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dialogButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => onSave(key)}
+          >
+            <Text style={[styles.dialogButtonText, { color: 'white' }]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  ) : null;
+};
+
 const AiTutorScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
   const [messages, setMessages] = useState([]);
@@ -107,6 +155,8 @@ const AiTutorScreen = ({ navigation }) => {
   const [currentSession, setCurrentSession] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   
   const scrollViewRef = useRef();
   
@@ -122,7 +172,8 @@ const AiTutorScreen = ({ navigation }) => {
   
   useFocusEffect(
     React.useCallback(() => {
-      // Load chat history when screen is focused
+      // Load API key and chat history when screen is focused
+      loadApiKey();
       fetchChatHistory();
       
       // Set initial suggestions
@@ -134,36 +185,149 @@ const AiTutorScreen = ({ navigation }) => {
     }, [])
   );
   
+  // Load API key from storage
+  const loadApiKey = async () => {
+    try {
+      const key = await AsyncStorage.getItem('gemini_api_key');
+      if (key) {
+        setGeminiApiKey(key);
+      } else {
+        // If no API key is found, show the dialog
+        setShowApiKeyDialog(true);
+      }
+    } catch (error) {
+      console.error('Error loading API key:', error);
+      setShowApiKeyDialog(true);
+    }
+  };
+  
+  // Save API key to storage
+  const saveApiKey = async (key) => {
+    if (!key.trim()) {
+      Alert.alert('Error', 'Please enter a valid API key');
+      return;
+    }
+    
+    try {
+      await AsyncStorage.setItem('gemini_api_key', key);
+      setGeminiApiKey(key);
+      setShowApiKeyDialog(false);
+    } catch (error) {
+      console.error('Error saving API key:', error);
+      Alert.alert('Error', 'Failed to save API key. Please try again.');
+    }
+  };
+  
   // Fetch chat history
   const fetchChatHistory = async () => {
-    // Simulate API request
-    setTimeout(() => {
-      const history = [
-        {
-          id: 1,
-          subject: 'Operating Systems',
-          lastMessage: 'Can you explain process scheduling?',
-          timestamp: '2d ago',
-          messageCount: 8
-        },
-        {
-          id: 2,
-          subject: 'Data Structures',
-          lastMessage: 'Help with binary search trees',
-          timestamp: '1w ago',
-          messageCount: 12
-        },
-        {
-          id: 3,
-          subject: 'Calculus',
-          lastMessage: 'Solving integration problems',
-          timestamp: '2w ago',
-          messageCount: 15
-        }
-      ];
+    try {
+      const historyJson = await AsyncStorage.getItem('chat_history');
+      if (historyJson) {
+        const history = JSON.parse(historyJson);
+        setChatHistory(history);
+      } else {
+        // Sample history for first-time users
+        const sampleHistory = [
+          {
+            id: 1,
+            subject: 'Operating Systems',
+            lastMessage: 'Can you explain process scheduling?',
+            timestamp: '2d ago',
+            messageCount: 8
+          }
+        ];
+        await AsyncStorage.setItem('chat_history', JSON.stringify(sampleHistory));
+        setChatHistory(sampleHistory);
+      }
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+      // Use default history on error
+      setChatHistory([]);
+    }
+  };
+  
+  // Save chat history
+  const saveChatHistory = async (session, lastMessage) => {
+    try {
+      const existingHistoryJson = await AsyncStorage.getItem('chat_history');
+      let history = [];
       
+      if (existingHistoryJson) {
+        history = JSON.parse(existingHistoryJson);
+      }
+      
+      // Check if session already exists in history
+      const existingIndex = history.findIndex(item => item.id === session.id);
+      
+      if (existingIndex !== -1) {
+        // Update existing session
+        history[existingIndex] = {
+          ...history[existingIndex],
+          lastMessage: lastMessage,
+          timestamp: getRelativeTime(new Date()),
+          messageCount: history[existingIndex].messageCount + 1
+        };
+      } else {
+        // Add new session to history
+        history.unshift({
+          id: session.id,
+          subject: session.subject,
+          lastMessage: lastMessage,
+          timestamp: getRelativeTime(new Date()),
+          messageCount: messages.length + 1
+        });
+      }
+      
+      // Keep only the last 10 sessions
+      history = history.slice(0, 10);
+      
+      await AsyncStorage.setItem('chat_history', JSON.stringify(history));
       setChatHistory(history);
-    }, 500);
+    } catch (error) {
+      console.error('Error saving chat history:', error);
+    }
+  };
+  
+  // Save chat messages for a session
+  const saveSessionMessages = async (sessionId, messagesList) => {
+    try {
+      await AsyncStorage.setItem(`session_${sessionId}`, JSON.stringify(messagesList));
+    } catch (error) {
+      console.error('Error saving session messages:', error);
+    }
+  };
+  
+  // Load messages for a session
+  const loadSessionMessages = async (sessionId) => {
+    try {
+      const messagesJson = await AsyncStorage.getItem(`session_${sessionId}`);
+      if (messagesJson) {
+        return JSON.parse(messagesJson);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading session messages:', error);
+      return null;
+    }
+  };
+  
+  // Helper to get relative time string
+  const getRelativeTime = (date) => {
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) {
+      return 'Today';
+    } else if (diffInDays === 1) {
+      return 'Yesterday';
+    } else if (diffInDays < 7) {
+      return `${diffInDays}d ago`;
+    } else if (diffInDays < 30) {
+      return `${Math.floor(diffInDays / 7)}w ago`;
+    } else {
+      return `${Math.floor(diffInDays / 30)}m ago`;
+    }
   };
   
   // Set initial suggestions
@@ -180,20 +344,28 @@ const AiTutorScreen = ({ navigation }) => {
   
   // Start a new session
   const startNewSession = (subject) => {
-    setSelectedSubject(subject);
-    setCurrentSession({
-      id: Date.now(),
+    const sessionId = Date.now();
+    const session = {
+      id: sessionId,
       subject: subject,
       startTime: new Date().toLocaleTimeString()
-    });
-    setMessages([
-      {
-        id: Date.now(),
-        text: `Hello! I'm your AI tutor for ${subject}. How can I help you today?`,
-        sender: 'ai',
-        time: new Date().toLocaleTimeString()
-      }
-    ]);
+    };
+    
+    setSelectedSubject(subject);
+    setCurrentSession(session);
+    
+    const initialMessage = {
+      id: Date.now(),
+      text: `Hello! I'm your AI tutor for ${subject}. How can I help you today?`,
+      sender: 'ai',
+      time: new Date().toLocaleTimeString()
+    };
+    
+    setMessages([initialMessage]);
+    
+    // Save initial message
+    saveSessionMessages(sessionId, [initialMessage]);
+    saveChatHistory(session, initialMessage.text);
     
     // Set subject-specific suggestions
     updateSuggestionsBySubject(subject);
@@ -241,35 +413,101 @@ const AiTutorScreen = ({ navigation }) => {
   };
   
   // Load previous session
-  const loadSession = (session) => {
+  const loadSession = async (session) => {
     setSelectedSubject(session.subject);
     setCurrentSession(session);
     
-    // Simulate loading previous messages
-    const previousMessages = [
-      {
-        id: 1,
+    // Load saved messages for this session
+    const savedMessages = await loadSessionMessages(session.id);
+    
+    if (savedMessages && savedMessages.length > 0) {
+      setMessages(savedMessages);
+    } else {
+      // Fallback to a default message if no saved messages
+      const defaultMessage = {
+        id: Date.now(),
         text: `Hello! I'm your AI tutor for ${session.subject}. How can I help you today?`,
         sender: 'ai',
-        time: '10:30 AM'
-      },
-      {
-        id: 2,
-        text: session.lastMessage,
-        sender: 'user',
-        time: '10:31 AM'
-      },
-      {
-        id: 3,
-        text: 'I would be happy to help you with that. Let me provide a detailed explanation...',
-        sender: 'ai',
-        time: '10:32 AM'
-      }
-    ];
+        time: new Date().toLocaleTimeString()
+      };
+      setMessages([defaultMessage]);
+    }
     
-    setMessages(previousMessages);
     updateSuggestionsBySubject(session.subject);
   };
+  
+  // Call Gemini API to get a response
+  const callGeminiApi = async (userInput, subject) => {
+    if (!geminiApiKey) {
+      setShowApiKeyDialog(true);
+      return 'Please set up your Gemini API key to continue.';
+    }
+    
+    try {
+      // Create a better prompt with context about the subject
+      let promptPrefix = `You are an expert AI tutor specializing in ${subject}. 
+        Your goal is to help the student understand concepts, solve problems, 
+        and learn effectively. Keep explanations clear, concise, and at 
+        an appropriate educational level. Include examples and analogies 
+        when helpful.`;
+      
+      // Build conversation history in a format Gemini supports
+      let conversationContext = '';
+      
+      // Add previous messages (limited to last 5 for context)
+      const recentMessages = messages.slice(-5);
+      for (const msg of recentMessages) {
+        const role = msg.sender === 'user' ? 'User' : 'Tutor';
+        conversationContext += `${role}: ${msg.text}\n\n`;
+      }
+      
+      // Prepare the final prompt with the current user question
+      const finalPrompt = `${promptPrefix}\n\n${conversationContext}User: ${userInput}\n\nTutor:`;
+  
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              { 
+                parts: [
+                  { text: finalPrompt }
+                ] 
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 800,
+            },
+          }),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error?.message || 'Error calling Gemini API');
+      }
+  
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
+        return data.candidates[0].content.parts[0].text;
+      } else {
+        throw new Error('Unexpected API response format');
+      }
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      return `I'm having trouble connecting to my AI systems. Error: ${error.message}`;
+    }
+  };
+  
+  // Also update the generateSuggestions function
+  
   
   // Send a message
   const sendMessage = async () => {
@@ -284,7 +522,8 @@ const AiTutorScreen = ({ navigation }) => {
     };
     
     // Add user message to chat
-    setMessages(prevMessages => [...prevMessages, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     
     // Scroll to bottom
@@ -292,81 +531,112 @@ const AiTutorScreen = ({ navigation }) => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
     
-    // Simulate AI thinking
+    // AI processing
     setLoading(true);
     
-    // Simulate API request for AI response
-    setTimeout(() => {
+    try {
+      // Get AI response from Gemini API
+      const aiResponseText = await callGeminiApi(userMessage.text, selectedSubject);
+      
+      // Create AI message
       const aiResponse = {
         id: Date.now() + 1,
-        text: generateAIResponse(input, selectedSubject),
+        text: aiResponseText,
         sender: 'ai',
         time: new Date().toLocaleTimeString()
       };
       
       // Add AI response to chat
-      setMessages(prevMessages => [...prevMessages, aiResponse]);
+      const finalMessages = [...updatedMessages, aiResponse];
+      setMessages(finalMessages);
+      
+      // Save conversation
+      if (currentSession) {
+        saveSessionMessages(currentSession.id, finalMessages);
+        saveChatHistory(currentSession, userMessage.text);
+      }
+      
+      // Generate contextual suggestions based on the conversation
+      generateSuggestions(userMessage.text, aiResponseText);
+    } catch (error) {
+      console.error('Error processing message:', error);
+      
+      // Create error message
+      const errorResponse = {
+        id: Date.now() + 1,
+        text: 'Sorry, I encountered an error while processing your request. Please try again later.',
+        sender: 'ai',
+        time: new Date().toLocaleTimeString()
+      };
+      
+      setMessages([...updatedMessages, errorResponse]);
+    } finally {
       setLoading(false);
       
       // Scroll to bottom
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
-      // Update suggestions based on conversation context
-      updateSuggestionsByContext(input);
-    }, 1500);
-  };
-  
-  // Generate AI response (simulated)
-  const generateAIResponse = (userInput, subject) => {
-    // This would be replaced with actual AI API call
-    const responses = {
-      'Operating Systems': 'In operating systems, processes are managed through scheduling algorithms like FCFS, SJF, and Round Robin. These determine which process gets CPU time and in what order, optimizing resource usage.',
-      'Data Structures': 'Binary search trees are hierarchical data structures where each node has at most two children. They enable efficient searching, insertion, and deletion operations with O(log n) time complexity in balanced trees.',
-      'Computer Networks': 'The TCP/IP protocol stack consists of four layers: Application, Transport, Internet, and Network Interface. Each layer has specific protocols and functions, enabling data transmission across networks.',
-      'Database Systems': 'Database normalization reduces redundancy and dependency by organizing fields and tables. The process includes 1NF, 2NF, 3NF, BCNF, and further normal forms to optimize database structure.',
-      'Calculus': 'Integration can be approached through various techniques including substitution, integration by parts, partial fractions, and trigonometric substitutions, depending on the functions characteristics.',
-      'Linear Algebra': 'Matrices represent linear transformations and can be used to solve systems of linear equations. Operations like addition, multiplication, and finding determinants help solve complex problems.'
-    };
-    
-    return responses[subject] || 'That\'s an interesting question. Let me explain this concept in detail...';
-  };
-  
-  // Update suggestions based on conversation context
-  const updateSuggestionsByContext = (userInput) => {
-    const input = userInput.toLowerCase();
-    let contextSuggestions = [];
-    
-    // Simulated context-aware suggestions
-    if (input.includes('algorithm') || input.includes('sorting')) {
-      contextSuggestions = [
-        'Compare quick sort and merge sort',
-        'Explain time complexity analysis',
-        'How to optimize sorting algorithms?',
-        'Real-world applications of sorting'
-      ];
-    } else if (input.includes('memory') || input.includes('allocation')) {
-      contextSuggestions = [
-        'How does garbage collection work?',
-        'Explain memory leaks and prevention',
-        'What is stack vs heap memory?',
-        'How does virtual memory work?'
-      ];
-    } else if (input.includes('database') || input.includes('sql')) {
-      contextSuggestions = [
-        'What are database indexing strategies?',
-        'Explain SQL joins with examples',
-        'How to optimize database queries?',
-        'NoSQL vs relational databases'
-      ];
-    } else {
-      // Default to subject-based suggestions
-      updateSuggestionsBySubject(selectedSubject);
-      return;
     }
-    
-    setSuggestions(contextSuggestions);
+  };
+  
+  // Generate suggestions based on conversation context
+  const generateSuggestions = async (userInput, aiResponse) => {
+    try {
+      if (!geminiApiKey) {
+        updateSuggestionsBySubject(selectedSubject);
+        return;
+      }
+      
+      const prompt = `Based on this conversation about ${selectedSubject}:
+      
+      User: "${userInput}"
+      AI Tutor: "${aiResponse}"
+      
+      Generate 4 follow-up questions the student might want to ask next to deepen their understanding. Keep each suggestion under 60 characters. Format your response as a list of numbered questions.`;
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 200,
+            },
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate suggestions');
+      }
+      
+      const data = await response.json();
+      const generatedText = data.candidates[0]?.content?.parts[0]?.text || '';
+      
+      // Extract suggestions line by line
+      const lines = generatedText.split('\n');
+      const extractedSuggestions = lines
+        .filter(line => line.trim())
+        .map(line => line.replace(/^[0-9.]+ */, '').trim()) // Remove numbering
+        .filter(line => line.length < 60 && line.length > 5)
+        .slice(0, 4);
+      
+      if (extractedSuggestions.length > 0) {
+        setSuggestions(extractedSuggestions);
+      } else {
+        // Fallback to subject-based suggestions
+        updateSuggestionsBySubject(selectedSubject);
+      }
+    } catch (error) {
+      console.error('Error generating suggestions:', error);
+      updateSuggestionsBySubject(selectedSubject);
+    }
   };
   
   // Handle suggestion press
@@ -382,12 +652,23 @@ const AiTutorScreen = ({ navigation }) => {
     setInitialSuggestions();
   };
   
+  // Handle API key settings button
+  const handleApiSettings = () => {
+    setShowApiKeyDialog(true);
+  };
+  
   // Main screen content
   if (!selectedSubject) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>AI Tutor</Text>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={handleApiSettings}
+          >
+            <Text style={[styles.settingsButtonText, { color: theme.colors.primary }]}>API Key</Text>
+          </TouchableOpacity>
         </View>
         
         <View style={styles.tutorIntroContainer}>
@@ -398,7 +679,7 @@ const AiTutorScreen = ({ navigation }) => {
             Your Personal AI Learning Assistant
           </Text>
           <Text style={[styles.tutorIntroDescription, { color: theme.colors.text + '99' }]}>
-            Ask questions, get explanations, and practice concepts with your AI tutor. Select a subject to get started.
+            Powered by Google's Gemini API, your AI tutor can answer questions, explain concepts, and help you master any subject.
           </Text>
         </View>
         
@@ -471,6 +752,14 @@ const AiTutorScreen = ({ navigation }) => {
             ))}
           </View>
         )}
+        
+        <ApiKeyDialog
+          visible={showApiKeyDialog}
+          apiKey={geminiApiKey}
+          onSave={saveApiKey}
+          onCancel={() => setShowApiKeyDialog(false)}
+          theme={theme}
+        />
       </SafeAreaView>
     );
   }
@@ -498,7 +787,14 @@ const AiTutorScreen = ({ navigation }) => {
               {selectedSubject}
             </Text>
           </View>
-          <View style={styles.chatHeaderRight} />
+          <TouchableOpacity 
+            style={styles.chatHeaderRight}
+            onPress={handleApiSettings}
+          >
+            <Text style={[styles.apiKeyText, { color: theme.colors.primary }]}>
+              API
+            </Text>
+          </TouchableOpacity>
         </View>
         
         {/* Messages */}
@@ -571,6 +867,14 @@ const AiTutorScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      
+      <ApiKeyDialog
+        visible={showApiKeyDialog}
+        apiKey={geminiApiKey}
+        onSave={saveApiKey}
+        onCancel={() => setShowApiKeyDialog(false)}
+        theme={theme}
+      />
     </SafeAreaView>
   );
 };
@@ -590,276 +894,342 @@ const getSubjectColor = (subject, theme) => {
       return theme.colors.success;
     case 'Linear Algebra':
       return theme.colors.warning;
-    default:
-      return theme.colors.primary;
-  }
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  tutorIntroContainer: {
-    alignItems: 'center',
-    padding: 20,
-    marginBottom: 20,
-  },
-  tutorAvatarLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  tutorAvatarTextLarge: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  tutorIntroTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  tutorIntroDescription: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  subjectsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  subjectGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  subjectCard: {
-    width: '48%',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  subjectIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  subjectIconText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  subjectCardTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  historyContainer: {
-    paddingHorizontal: 20,
-  },
-  historyCard: {
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  historyCardContent: {
-    padding: 16,
-  },
-  historySubjectBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  historySubjectText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  historyMessageText: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  historyFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  historyTimestamp: {
-    fontSize: 12,
-  },
-  historyMessageCount: {
-    fontSize: 12,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  backButton: {
-    paddingRight: 16,
-  },
-  backButtonText: {
-    fontSize: 16,
-  },
-  chatHeaderCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  chatSubjectText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  chatHeaderRight: {
-    width: 40,
-  },
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    maxWidth: '100%',
-  },
-  userMessageContainer: {
-    justifyContent: 'flex-end',
-  },
-  aiMessageContainer: {
-    justifyContent: 'flex-start',
-  },
-  avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  emptyAvatarSpace: {
-    width: 36,
-    marginLeft: 8,
-  },
-  messageBubble: {
-    maxWidth: '75%',
-    padding: 12,
-    borderRadius: 16,
-  },
-  userBubble: {
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  messageTime: {
-    fontSize: 10,
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    padding: 12,
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  loadingText: {
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  suggestionsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  suggestionBubble: {
-    padding: 10,
-    borderRadius: 16,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  suggestionText: {
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingRight: 48,
-    marginRight: 8,
-    maxHeight: 120,
-    fontSize: 16,
-  },
-  sendButton: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  subjectPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  subjectPillText: {
-    fontSize: 14,
-  },
-});
-
-export default AiTutorScreen;
+      default:
+        return theme.colors.primary;
+    }
+  };
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    keyboardAvoid: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 16,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+    },
+    settingsButton: {
+      padding: 8,
+    },
+    settingsButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    tutorIntroContainer: {
+      alignItems: 'center',
+      padding: 20,
+      marginBottom: 20,
+    },
+    tutorAvatarLarge: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    tutorAvatarTextLarge: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: 'white',
+    },
+    tutorIntroTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    tutorIntroDescription: {
+      fontSize: 16,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    subjectsContainer: {
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 16,
+    },
+    subjectGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    subjectCard: {
+      width: '48%',
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    subjectIcon: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    subjectIconText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    subjectCardTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      textAlign: 'center',
+    },
+    historyContainer: {
+      paddingHorizontal: 20,
+    },
+    historyCard: {
+      borderRadius: 12,
+      marginBottom: 12,
+      overflow: 'hidden',
+    },
+    historyCardContent: {
+      padding: 16,
+    },
+    historySubjectBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    historySubjectText: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    historyMessageText: {
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    historyFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    historyTimestamp: {
+      fontSize: 12,
+    },
+    historyMessageCount: {
+      fontSize: 12,
+    },
+    chatHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#E0E0E0',
+    },
+    backButton: {
+      paddingRight: 16,
+    },
+    backButtonText: {
+      fontSize: 16,
+    },
+    chatHeaderCenter: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    chatSubjectText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    chatHeaderRight: {
+      padding: 8,
+    },
+    apiKeyText: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    messagesContainer: {
+      flex: 1,
+    },
+    messagesContent: {
+      padding: 16,
+      paddingBottom: 24,
+    },
+    messageContainer: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      maxWidth: '100%',
+    },
+    userMessageContainer: {
+      justifyContent: 'flex-end',
+    },
+    aiMessageContainer: {
+      justifyContent: 'flex-start',
+    },
+    avatarContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 8,
+    },
+    avatarText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    emptyAvatarSpace: {
+      width: 36,
+      marginLeft: 8,
+    },
+    messageBubble: {
+      maxWidth: '75%',
+      padding: 12,
+      borderRadius: 16,
+    },
+    userBubble: {
+      borderBottomRightRadius: 4,
+    },
+    aiBubble: {
+      borderBottomLeftRadius: 4,
+      borderWidth: 1,
+    },
+    messageText: {
+      fontSize: 16,
+      lineHeight: 22,
+    },
+    messageTime: {
+      fontSize: 10,
+      alignSelf: 'flex-end',
+      marginTop: 4,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      padding: 12,
+      borderRadius: 16,
+      borderBottomLeftRadius: 4,
+      borderWidth: 1,
+      marginBottom: 16,
+    },
+    loadingText: {
+      marginLeft: 8,
+      fontSize: 14,
+    },
+    suggestionsContainer: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    suggestionBubble: {
+      padding: 10,
+      borderRadius: 16,
+      marginRight: 8,
+      borderWidth: 1,
+    },
+    suggestionText: {
+      fontSize: 14,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      padding: 12,
+      borderTopWidth: 1,
+      borderTopColor: '#E0E0E0',
+      alignItems: 'flex-end',
+    },
+    input: {
+      flex: 1,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      paddingRight: 48,
+      marginRight: 8,
+      maxHeight: 120,
+      fontSize: 16,
+    },
+    sendButton: {
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sendButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    subjectPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      marginRight: 8,
+      borderWidth: 1,
+    },
+    subjectPillText: {
+      fontSize: 14,
+    },
+    dialogOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    dialogContainer: {
+      width: '80%',
+      padding: 20,
+      borderRadius: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    dialogTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 12,
+    },
+    dialogDescription: {
+      fontSize: 14,
+      marginBottom: 16,
+      lineHeight: 20,
+    },
+    dialogInput: {
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      marginBottom: 20,
+    },
+    dialogButtonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    dialogButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginLeft: 12,
+      borderWidth: 1,
+    },
+    dialogButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+  });
+  
+  export default AiTutorScreen;
